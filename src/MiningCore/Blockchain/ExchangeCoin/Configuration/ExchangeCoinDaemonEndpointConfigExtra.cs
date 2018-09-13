@@ -18,38 +18,22 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using Newtonsoft.Json;
-
-namespace MiningCore.Blockchain.ZCash.DaemonResponses
+namespace MiningCore.Blockchain.ExchangeCoin.Configuration
 {
-    public class ZCashCoinbaseTransaction
+    public class ExchangeCoinDaemonEndpointConfigExtra
     {
-        public string Data { get; set; }
-        public string Hash { get; set; }
-        public decimal Fee { get; set; }
-        public int SigOps { get; set; }
-        public ulong FoundersReward { get; set; }
-        public bool Required { get; set; }
+        public int? MinimumConfirmations { get; set; }
 
-        // "depends":[ ],
-    }
+        /// <summary>
+        /// Address of ZeroMQ block notify socket
+        /// Should match the value of -zmqpubhashblock daemon start parameter
+        /// </summary>
+        public string ZmqBlockNotifySocket { get; set; }
 
-    public class ZCashBlockTemplate : Bitcoin.DaemonResponses.BlockTemplate
-    {
-        public string[] Capabilities { get; set; }
-
-        [JsonProperty("coinbasetxn")]
-        public ZCashCoinbaseTransaction CoinbaseTx { get; set; }
-
-        public string LongPollId { get; set; }
-        public ulong MinTime { get; set; }
-        public ulong SigOpLimit { get; set; }
-        public ulong SizeLimit { get; set; }
-        public string[] Mutable { get; set; }
-
-        public ZCashBlockSubsidy Subsidy { get; set; }
-
-        [JsonProperty("finalsaplingroothash")]
-        public string FinalSaplingRootHash { get; set; }
+        /// <summary>
+        /// Optional: ZeroMQ block notify topic
+        /// Defaults to "hashblock" if left blank
+        /// </summary>
+        public string ZmqBlockNotifyTopic { get; set; }
     }
 }

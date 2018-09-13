@@ -18,38 +18,18 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using Newtonsoft.Json;
-
-namespace MiningCore.Blockchain.ZCash.DaemonResponses
+namespace MiningCore.Blockchain.ExchangeCoin.DaemonResponses
 {
-    public class ZCashCoinbaseTransaction
+    public class PeerInfo
     {
-        public string Data { get; set; }
-        public string Hash { get; set; }
-        public decimal Fee { get; set; }
-        public int SigOps { get; set; }
-        public ulong FoundersReward { get; set; }
-        public bool Required { get; set; }
-
-        // "depends":[ ],
-    }
-
-    public class ZCashBlockTemplate : Bitcoin.DaemonResponses.BlockTemplate
-    {
-        public string[] Capabilities { get; set; }
-
-        [JsonProperty("coinbasetxn")]
-        public ZCashCoinbaseTransaction CoinbaseTx { get; set; }
-
-        public string LongPollId { get; set; }
-        public ulong MinTime { get; set; }
-        public ulong SigOpLimit { get; set; }
-        public ulong SizeLimit { get; set; }
-        public string[] Mutable { get; set; }
-
-        public ZCashBlockSubsidy Subsidy { get; set; }
-
-        [JsonProperty("finalsaplingroothash")]
-        public string FinalSaplingRootHash { get; set; }
+        public int Id { get; set; }
+        public string Addr { get; set; }
+        public int Version { get; set; }
+        public string SubVer { get; set; }
+        public int Blocks { get; set; }
+        public int StartingHeight { get; set; }
+        public int TimeOffset { get; set; }
+        public double BanScore { get; set; }
+        public int ConnTime { get; set; }
     }
 }

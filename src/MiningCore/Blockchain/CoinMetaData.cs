@@ -67,6 +67,7 @@ namespace MiningCore.Blockchain
             { CoinType.CANN, new Dictionary<string, string> { { string.Empty, $"https://chainz.cryptoid.info/cann/block.dws?{BlockHeightPH}.htm" } } },
             { CoinType.RVN, new Dictionary<string, string> { { string.Empty, $"http://explorer.threeeyed.info/block/{BlockHashPH}" } } },
             { CoinType.PGN, new Dictionary<string, string> { { string.Empty, $"http://explorer.pigeoncoin.org/block/{BlockHashPH}" } } },
+            { CoinType.EXCC, new Dictionary<string, string> { { string.Empty, $"https://explorer.excc.co/block/{BlockHashPH}" }}},
         };
 
         public static readonly Dictionary<CoinType, string> TxInfoLinks = new Dictionary<CoinType, string>
@@ -106,6 +107,7 @@ namespace MiningCore.Blockchain
             { CoinType.CANN, "https://chainz.cryptoid.info/cann/tx.dws?{0}.htm" },
             { CoinType.RVN, "http://explorer.threeeyed.info/tx/{0}" },
             { CoinType.PGN, "http://explorer.pigeoncoin.org/tx/{0}" },
+            { CoinType.EXCC, "https://explorer.excc.co/tx/{0}" },
         };
 
         public static readonly Dictionary<CoinType, string> AddressInfoLinks = new Dictionary<CoinType, string>
@@ -142,6 +144,7 @@ namespace MiningCore.Blockchain
             { CoinType.CANN, "https://chainz.cryptoid.info/cann/address.dws?{0}.htm" },
             { CoinType.RVN, "http://explorer.threeeyed.info/address/{0}" },
             { CoinType.PGN, "http://explorer.pigeoncoin.org/address/{0}" },
+            { CoinType.EXCC, "https://explorer.excc.co/address/{0}" },
         };
 
         private const string Ethash = "Ethash";
@@ -185,6 +188,7 @@ namespace MiningCore.Blockchain
             { CoinType.CANN, BitcoinProperties.GetAlgorithm },
             { CoinType.RVN, BitcoinProperties.GetAlgorithm },
             { CoinType.PGN, BitcoinProperties.GetAlgorithm },
+            { CoinType.EXCC, BitcoinProperties.GetAlgorithm },
         };
     }
 }

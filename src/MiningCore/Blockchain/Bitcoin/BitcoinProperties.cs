@@ -78,6 +78,9 @@ namespace MiningCore.Blockchain.Bitcoin
         private static readonly BitcoinCoinProperties equihashCoin =
             new BitcoinCoinProperties(1, new DummyHasher(), sha256D, sha256DReverse, "Equihash");
 
+        private static readonly BitcoinCoinProperties equihash1445Coin =
+            new BitcoinCoinProperties(1, new DummyHasher(), sha256S, sha256DReverse, "Equihash 144, 5");
+
         private static readonly BitcoinCoinProperties neoScryptCoin =
             new BitcoinCoinProperties(Math.Pow(2, 16), sha256D, neoScryptProfile1, new DigestReverser(neoScryptProfile1), "Neoscrypt");
 
@@ -139,6 +142,9 @@ namespace MiningCore.Blockchain.Bitcoin
             { CoinType.ZCL, equihashCoin },
             { CoinType.ZEN, equihashCoin },
             { CoinType.BTCP, equihashCoin },
+
+            // Equihash 144,5
+            { CoinType.EXCC, equihash1445Coin },
 
             // Neoscrypt
             { CoinType.GBX, neoScryptCoin },

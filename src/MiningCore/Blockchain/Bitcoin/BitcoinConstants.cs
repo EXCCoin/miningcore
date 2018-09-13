@@ -187,8 +187,8 @@ namespace MiningCore.Blockchain.Bitcoin
 
         // Legacy commands
         public const string GetInfo = "getinfo";
-
         public const string GetDifficulty = "getdifficulty";
         public const string GetConnectionCount = "getconnectioncount";
+        public const string GetWork = "getwork";
     }
 }
