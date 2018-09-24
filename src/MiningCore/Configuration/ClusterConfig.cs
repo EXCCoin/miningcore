@@ -134,7 +134,7 @@ namespace MiningCore.Configuration
 
         [JsonExtensionData]
         public IDictionary<string, object> Extra { get; set; }
-    }
+    }    
 
     public class DatabaseConfig : AuthenticatedNetworkEndpointConfig
     {

@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-namespace MiningCore.Blockchain.ExchangeCoin.DaemonResponses
+﻿namespace MiningCore.Blockchain.ExchangeCoin.DaemonInterface
 {
 
     public class ExchangeCoinGetWork

@@ -120,4 +120,37 @@ namespace MiningCore.Crypto.Hashing.Equihash
             }
         }
     }
+
+    public unsafe class EquihashSolver_ExchangeCoin : EquihashSolverBase
+    {
+        private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
+
+        public override bool Verify(byte[] header, byte[] solution)
+        {
+            Contract.RequiresNonNull(header, nameof(header));
+            Contract.Requires<ArgumentException>(header.Length == 180, $"{nameof(header)} must be exactly 180 bytes");
+            Contract.RequiresNonNull(solution, nameof(solution));
+            Contract.Requires<ArgumentException>(solution.Length == 100, $"{nameof(solution)} must be exactly 100 bytes");
+
+            logger.LogInvoke();
+
+            try
+            {
+                sem.Value.WaitOne();
+
+                fixed(byte* h = header)
+                {
+                    fixed(byte* s = solution)
+                    {
+                        return LibMultihash.equihash_verify_btg(h, header.Length, s, solution.Length);
+                    }
+                }
+            }
+
+            finally
+            {
+                sem.Value.Release();
+            }
+        }
+    }
 }

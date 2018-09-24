@@ -1,5 +1,5 @@
-﻿/*
-Copyright 2018 Exchange Coin (excc.co)
+﻿﻿/*
+Copyright 2018 ExchangeCoin (excc.co)
 */
 
 using System;
@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 using Autofac;
 using MiningCore.Blockchain.Bitcoin;
 using MiningCore.Blockchain.ExchangeCoin.Configuration;
-using MiningCore.Blockchain.ExchangeCoin.DaemonResponses;
+using MiningCore.Blockchain.ExchangeCoin.DaemonInterface;
 using MiningCore.Configuration;
 using MiningCore.Contracts;
 using MiningCore.Crypto;
@@ -30,6 +30,8 @@ using NBitcoin;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NLog;
+using Block = MiningCore.Blockchain.ExchangeCoin.DaemonInterface.Block;
+using Transaction = MiningCore.Blockchain.ExchangeCoin.DaemonInterface.Transaction;
 
 namespace MiningCore.Blockchain.ExchangeCoin
 {
@@ -53,6 +55,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
 
         private readonly IMasterClock _clock;
         private DaemonClient _daemon;
+        private DaemonClient _wallet;
         private readonly IExtraNonceProvider _extraNonceProvider;
         private const int ExtranonceBytes = 12;
         private int _maxActiveJobs = 4;
@@ -60,10 +63,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
         private ExchangeCoinPoolPaymentProcessingConfigExtra _extraPoolPaymentProcessingConfig;
         private readonly List<ExchangeCoinJob> _validJobs = new List<ExchangeCoinJob>();
         private DateTime? _lastJobRebroadcast;
-        private IHashAlgorithm _blockHasher;
-        private IHashAlgorithm _coinbaseHasher;
         private IHashAlgorithm _headerHasher;
-        private bool _isPoS;
         private TimeSpan _jobRebroadcastTimeout;
         private BitcoinNetworkType _networkType;
         private IDestination _poolAddressDestination;
@@ -84,44 +84,6 @@ namespace MiningCore.Blockchain.ExchangeCoin
 
             if (_extraPoolConfig?.BtStream == null)
             {
-                // collect ports
-                var zmq = poolConfig.Daemons
-                    .Where(x => !string.IsNullOrEmpty(x.Extra.SafeExtensionDataAs<ExchangeCoinDaemonEndpointConfigExtra>()?.ZmqBlockNotifySocket))
-                    .ToDictionary(x => x, x =>
-                    {
-                        var extra = x.Extra.SafeExtensionDataAs<ExchangeCoinDaemonEndpointConfigExtra>();
-                        var topic = !string.IsNullOrEmpty(extra.ZmqBlockNotifyTopic?.Trim()) ? extra.ZmqBlockNotifyTopic.Trim() : BitcoinConstants.ZmqPublisherTopicBlockHash;
-
-                        return (Socket: extra.ZmqBlockNotifySocket, Topic: topic);
-                    });
-
-                if (zmq.Count > 0)
-                {
-                    logger.Info(() => $"[{LogCat}] Subscribing to ZMQ push-updates from {string.Join(", ", zmq.Values)}");
-
-                    var blockNotify = _daemon.ZmqSubscribe(zmq)
-                        .Select(frames =>
-                        {
-                            // We just take the second frame's raw data and turn it into a hex string.
-                            // If that string changes, we got an update (DistinctUntilChanged)
-                            var result = frames[1].ToHexString();
-                            frames.Dispose();
-                            return result;
-                        })
-                        .DistinctUntilChanged()
-                        .Select(_ => (false, "ZMQ pub/sub", (string) null))
-                        .Publish()
-                        .RefCount();
-
-                    pollTimerRestart = Observable.Merge(
-                            blockSubmission,
-                            blockNotify.Select(_ => Unit.Default))
-                        .Publish()
-                        .RefCount();
-
-                    triggers.Add(blockNotify);
-                }
-
                 if (poolConfig.BlockRefreshInterval > 0)
                 {
                     // periodically update block-template
@@ -289,7 +251,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
 
             // was it accepted?
             var acceptResult = results[1];
-            var block = acceptResult.Response?.ToObject<DaemonResponses.Block>();
+            var block = acceptResult.Response?.ToObject<Block>();
             var accepted = acceptResult.Error == null && block?.Hash == share.BlockHash;
 
             if (!accepted)
@@ -308,9 +270,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
             if (coinProps == null)
                 logger.ThrowLogPoolStartupException($"Coin Type '{poolConfig.Coin.Type}' not supported by this Job Manager", LogCat);
 
-            _coinbaseHasher = coinProps.CoinbaseHasher;
             _headerHasher = coinProps.HeaderHasher;
-            _blockHasher = !_isPoS ? coinProps.BlockHasher : (coinProps.PoSBlockHasher ?? coinProps.BlockHasher);
             ShareMultiplier = coinProps.ShareMultiplier;
         }
 
@@ -412,6 +372,12 @@ namespace MiningCore.Blockchain.ExchangeCoin
                     // persist the coinbase transaction-hash to allow the payment processor
                     // to verify later on that the pool has received the reward for the block
                     share.TransactionConfirmationData = acceptResponse.CoinbaseTransaction;
+                    
+                    // check what is a value of CoinbaseTransaction and assign it to block reward
+                    var result = await _wallet.ExecuteCmdSingleAsync<JToken>(BitcoinCommands.GetTransaction, new [] {acceptResponse.CoinbaseTransaction});
+                    Transaction transactionInfo = result.Response?.ToObject<Transaction>();
+                    if (transactionInfo != null) 
+                        share.BlockReward = (decimal) transactionInfo.Details?[0]?.Amount;
                 }
 
                 else
@@ -461,6 +427,9 @@ namespace MiningCore.Blockchain.ExchangeCoin
 
             _daemon = new DaemonClient(jsonSerializerSettings, messageBus, clusterConfig.ClusterName ?? poolConfig.PoolName, poolConfig.Id);
             _daemon.Configure(poolConfig.Daemons);
+            
+            _wallet = new DaemonClient(jsonSerializerSettings, messageBus, clusterConfig.ClusterName ?? poolConfig.PoolName, poolConfig.Id);
+            _wallet.Configure(_extraPoolConfig.Wallets);
         }
 
         protected override async Task<bool> AreDaemonsHealthyAsync()
@@ -531,36 +500,37 @@ namespace MiningCore.Blockchain.ExchangeCoin
                 if (errors.Any())
                     logger.ThrowLogPoolStartupException($"Init RPC failed: {string.Join(", ", errors.Select(y => y.Error.Message))}", LogCat);
             }
-
+            
             // extract results
             var validateAddressResponse = results[0].Response.ToObject<ValidateAddressResponse>();
             var daemonInfoResponse = results[1].Response.ToObject<DaemonInfo>();
             var difficultyResponse = results[2].Response.ToObject<JToken>();
 
+            if (clusterConfig.PaymentProcessing?.Enabled == true)
+            {
+                var result = await _wallet.ExecuteCmdAnyAsync<ValidateAddressResponse>(
+                    BitcoinCommands.ValidateAddress, new[] { poolConfig.Address });
+                
+                // extract results
+                validateAddressResponse = result.Response;
+            }
+
             // ensure pool owns wallet
             if (!validateAddressResponse.IsValid)
                 logger.ThrowLogPoolStartupException($"Daemon reports pool-address '{poolConfig.Address}' as invalid", LogCat);
-
+            
             if (clusterConfig.PaymentProcessing?.Enabled == true && !validateAddressResponse.IsMine)
                 logger.ThrowLogPoolStartupException($"Daemon does not own pool-address '{poolConfig.Address}'", LogCat);
 
-            _isPoS = difficultyResponse.Values().Any(x => x.Path == "proof-of-stake");
-
             // Create pool address script from response
-            if (!_isPoS)
-            {
-                _poolAddressDestination = AddressToDestination(poolConfig.Address);
-            }
-
-            else
-                _poolAddressDestination = new PubKey(validateAddressResponse.PubKey);
+            _poolAddressDestination = AddressToDestination(poolConfig.Address);
 
             // chain detection
             _networkType = daemonInfoResponse.Testnet ? BitcoinNetworkType.Test : BitcoinNetworkType.Main;
 
             // update stats
             BlockchainStats.NetworkType = _networkType.ToString();
-            BlockchainStats.RewardType = _isPoS ? "POS" : "POW";
+            BlockchainStats.RewardType = "POW";
 
             await UpdateNetworkStatsAsync();
 
@@ -612,9 +582,9 @@ namespace MiningCore.Blockchain.ExchangeCoin
                     job = new ExchangeCoinJob();
 
                     job.Init(work, NextJobId(),
-                        poolConfig, clusterConfig, _clock, _poolAddressDestination, _networkType, _isPoS,
+                        poolConfig, clusterConfig, _clock, _poolAddressDestination, _networkType,
                         ShareMultiplier, _extraPoolPaymentProcessingConfig?.BlockrewardMultiplier ?? 1.0m,
-                        _coinbaseHasher, _headerHasher, _blockHasher);
+                        _headerHasher);
 
                     lock (jobLock)
                     {

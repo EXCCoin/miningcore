@@ -1,6 +1,5 @@
 ﻿/*
-Copyright 2018 Exchange Coin (excc.co)
-Authors: Wojciech Harzowski (wojciech.harzowski@pragmaticcoders.com)
+Copyright 2018 ExchangeCoin (excc.co)
 */
 
 using MiningCore.Configuration;
@@ -16,13 +15,15 @@ namespace MiningCore.Blockchain.ExchangeCoin.Configuration
         public int? MaxActiveJobs { get; set; }
 
         /// <summary>
-        /// Set to true to limit RPC commands to old Bitcoin command set
-        /// </summary>
-        public bool? HasLegacyDaemon { get; set; }
-
-        /// <summary>
         /// Blocktemplate stream published via ZMQ
         /// </summary>
         public ZmqPubSubEndpointConfig BtStream { get; set; }
+        
+        /// <summary>
+        /// Optional config of seperated wallet deamon
+        /// </summary>
+        public DaemonEndpointConfig[] Wallets { get; set; }
+        
+        public int? MinimumConfirmations { get; set; }
     }
 }

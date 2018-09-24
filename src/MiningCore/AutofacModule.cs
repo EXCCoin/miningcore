@@ -30,7 +30,6 @@ using MiningCore.Blockchain.Dash;
 using MiningCore.Blockchain.Dash.DaemonResponses;
 using MiningCore.Blockchain.Ethereum;
 using MiningCore.Blockchain.ExchangeCoin;
-using MiningCore.Blockchain.ExchangeCoin.DaemonResponses;
 using MiningCore.Blockchain.Flo;
 using MiningCore.Blockchain.Monero;
 using MiningCore.Blockchain.Straks;

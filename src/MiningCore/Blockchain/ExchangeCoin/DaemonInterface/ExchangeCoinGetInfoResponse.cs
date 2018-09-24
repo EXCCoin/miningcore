@@ -18,15 +18,17 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace MiningCore.Blockchain.ExchangeCoin.DaemonResponses
+namespace MiningCore.Blockchain.ExchangeCoin.DaemonInterface
 {
-    public class MiningInfo
+    public class DaemonInfo
     {
-        public int Blocks { get; set; }
-        public int CurrentBlockSize { get; set; }
-        public int CurrentBlockWeight { get; set; }
+        public string Version { get; set; }
+        public int ProtocolVersion { get; set; }
+        public int WalletVersion { get; set; }
+        public decimal Balance { get; set; }
+        public ulong Blocks { get; set; }
+        public bool Testnet { get; set; }
+        public int Connections { get; set; }
         public double Difficulty { get; set; }
-        public double NetworkHashps { get; set; }
-        public string Chain { get; set; }
     }
 }

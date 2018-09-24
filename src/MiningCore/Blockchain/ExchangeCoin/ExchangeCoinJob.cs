@@ -1,5 +1,5 @@
 ﻿/*
-Copyright 2018 Exchange Coin (excc.co)
+Copyright 2018 ExchangeCoin (excc.co)
 */
 
 using System;
@@ -8,10 +8,11 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using MiningCore.Blockchain.Bitcoin;
-using MiningCore.Blockchain.ExchangeCoin.DaemonResponses;
+using MiningCore.Blockchain.ExchangeCoin.DaemonInterface;
 using MiningCore.Configuration;
 using MiningCore.Contracts;
 using MiningCore.Crypto;
+using MiningCore.Crypto.Hashing.Equihash;
 using MiningCore.Extensions;
 using MiningCore.Stratum;
 using MiningCore.Time;
@@ -23,6 +24,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
 {
     public class ExchangeCoinJob
     {
+        protected ExchangeCoinChainConfig chainConfig;
         protected IMasterClock clock;
         protected double shareMultiplier;
         protected IHashAlgorithm headerHasher;
@@ -30,156 +32,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
         protected BigInteger blockTargetValue;
         protected byte[] coinbaseInitial;
         protected string coinbaseInitialHex;
-        protected EquihashSolver equihash = EquihashSolver.Instance.Value;
-
-        ///////////////////////////////////////////
-        // GetJobParams related properties
-
-        protected object[] jobParams;
-
-        protected virtual void BuildCoinbase()
-        {
-            // build coinbase initial
-            using(var stream = new MemoryStream())
-            {
-                var bs = new BitcoinStream(stream, true);
-                BlockHeader.ReadWriteInitialCoinbase(bs);
-
-                coinbaseInitial = stream.ToArray();
-                coinbaseInitialHex = coinbaseInitial.ToHexString();
-            }
-
-            // build coinbase final
-            using(var stream = new MemoryStream())
-            {
-                var bs = new BitcoinStream(stream, true);
-                BlockHeader.ReadWriteFinalCoinbase(bs);
-            }
-        }
-
-        protected bool RegisterSubmit(string nonce, string extraNonce, string solution)
-        {
-            lock(submissions)
-            {
-                var key = nonce.ToLower() + extraNonce.ToLower() + solution.ToLower();
-                if (submissions.Contains(key))
-                    return false;
-
-                submissions.Add(key);
-                return true;
-            }
-        }
-
-        protected virtual (Share Share, string BlockHex) ProcessShareInternal(StratumClient worker, string extraNonce,
-            uint nTime, string nonce, string solution)
-        {
-            var context = worker.ContextAs<BitcoinWorkerContext>();
-            var solutionBytes = solution.HexToByteArray();
-            var extraNonceBytes = extraNonce.HexToByteArray();
-            var nonceInt = uint.Parse(nonce, NumberStyles.HexNumber);
-
-            // hash block-header
-            var headerBytes = SerializeHeader(nTime, extraNonceBytes, nonceInt);
-
-            // verify solution
-//            if (!equihash.Verify(headerBytes, solutionBytes))
-//                throw new StratumException(StratumError.Other, "invalid solution");
-
-            // hash block-header
-            var headerSolutionBytes = headerBytes.Concat(solutionBytes).ToArray();
-            var headerHash = headerHasher.Digest(headerSolutionBytes);
-            var headerValue = new uint256(headerHash);
-            var headerHashBigInt = new BigInteger(headerHash.ToBigInteger().ToString());
-
-            // calc share-diff
-            var shareDiff = (double) new BigRational(BitcoinConstants.Diff1, headerHash.ToBigInteger()) * shareMultiplier;
-            var stratumDifficulty = context.Difficulty;
-            var ratio = shareDiff / stratumDifficulty;
-
-            // check if the share meets the much harder block difficulty (block candidate)
-            var isBlockCandidate = headerHashBigInt.CompareTo(blockTargetValue) < 1;
-
-            // test if share meets at least workers current difficulty
-            if (!isBlockCandidate && ratio < 0.99)
-            {
-                // check if share matched the previous difficulty from before a vardiff retarget
-                if (context.VarDiff?.LastUpdate != null && context.PreviousDifficulty.HasValue)
-                {
-                    ratio = shareDiff / context.PreviousDifficulty.Value;
-
-                    if (ratio < 0.99)
-                        throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share ({shareDiff})");
-
-                    // use previous difficulty
-                    stratumDifficulty = context.PreviousDifficulty.Value;
-                }
-
-                else
-                    throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share ({shareDiff})");
-            }
-
-            var result = new Share
-            {
-                BlockHeight = BlockHeader.Height,
-                NetworkDifficulty = Difficulty * shareMultiplier,
-                Difficulty = stratumDifficulty,
-            };
-
-            if (isBlockCandidate)
-            {
-                result.IsBlockCandidate = true;
-                result.BlockHash = headerValue.ToString();
-
-                var blockHex = headerSolutionBytes.ToHexString();
-
-                return (result, blockHex);
-            }
-
-            return (result, null);
-        }
-
-        protected virtual byte[] SerializeHeader(uint nTime, byte[] extraNonce, uint nonce)
-        {
-            byte[] serialized;
-
-            using(var stream = new MemoryStream())
-            {
-                var bs = new BitcoinStream(stream, true);
-                BlockHeader.ReadWrite(bs);
-                serialized = stream.ToArray();
-            }
-
-
-            var tmpBlockHeader = new ExchangeCoinBlockHeader(serialized);
-            tmpBlockHeader.Timestamp = nTime;
-            tmpBlockHeader.Nonce = nonce;
-            Array.Resize(ref extraNonce, 32);
-            tmpBlockHeader.ExtraData = extraNonce;
-
-            byte[] serializedTmp;
-            using(var stream = new MemoryStream())
-            {
-                var bs = new BitcoinStream(stream, true);
-                tmpBlockHeader.ReadWriteWithoutSolution(bs);
-
-                serializedTmp = stream.ToArray();
-            }
-
-            return serializedTmp;
-        }
-
-        protected virtual byte[] SerializeBlock(byte[] header, byte[] solution)
-        {
-            using(var stream = new MemoryStream())
-            {
-                var bs = new BitcoinStream(stream, true);
-
-                bs.ReadWrite(ref header);
-                bs.ReadWrite(ref solution);
-
-                return stream.ToArray();
-            }
-        }
+        protected EquihashSolverBase equihash;
 
         #region API-Surface
 
@@ -188,33 +41,32 @@ namespace MiningCore.Blockchain.ExchangeCoin
         public double Difficulty { get; protected set; }
 
         public string JobId { get; protected set; }
-
+        
         public virtual void Init(ExchangeCoinGetWork work, string jobId,
             PoolConfig poolConfig, ClusterConfig clusterConfig, IMasterClock clock,
             IDestination poolAddressDestination, BitcoinNetworkType networkType,
-            bool isPoS, double shareMultiplier, decimal blockrewardMultiplier,
-            IHashAlgorithm coinbaseHasher, IHashAlgorithm headerHasher, IHashAlgorithm blockHasher)
+            double shareMultiplier, decimal blockrewardMultiplier, IHashAlgorithm headerHasher)
         {
             Contract.RequiresNonNull(work, nameof(work));
             Contract.RequiresNonNull(poolConfig, nameof(poolConfig));
             Contract.RequiresNonNull(clusterConfig, nameof(clusterConfig));
             Contract.RequiresNonNull(clock, nameof(clock));
             Contract.RequiresNonNull(poolAddressDestination, nameof(poolAddressDestination));
-            Contract.RequiresNonNull(coinbaseHasher, nameof(coinbaseHasher));
             Contract.RequiresNonNull(headerHasher, nameof(headerHasher));
-            Contract.RequiresNonNull(blockHasher, nameof(blockHasher));
             Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(jobId), $"{nameof(jobId)} must not be empty");
 
             this.clock = clock;
 
+            if (ExchangeCoinConstants.Chains.TryGetValue(poolConfig.Coin.Type, out var chain))
+                chain.TryGetValue(networkType, out chainConfig);
+
             Work = work;
             BlockHeader = new ExchangeCoinBlockHeader(work.Data);
             JobId = jobId;
-            Difficulty = new Target(new NBitcoin.BouncyCastle.Math.BigInteger(Work.Target, 16)).Difficulty;
 
             this.shareMultiplier = shareMultiplier;
-
             this.headerHasher = headerHasher;
+            this.equihash = chainConfig.Solver();
 
             if(!string.IsNullOrEmpty(Work.Target))
                 blockTargetValue = new BigInteger(Work.Target.HexToByteArray().ToReverseArray());
@@ -224,6 +76,8 @@ namespace MiningCore.Blockchain.ExchangeCoin
                 blockTargetValue = tmp.ToBigInteger();
             }
 
+            Difficulty = chainConfig.PowLimit.Divide(blockTargetValue).LongValue;
+            
             BuildCoinbase();
 
             jobParams = new object[]
@@ -273,7 +127,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
                 throw new StratumException(StratumError.Other, "incorrect extraNonce");
 
             // validate solution
-            if (solution.Length != 200)
+            if (solution.Length != chainConfig.SolutionSize * 2)
                 throw new StratumException(StratumError.Other, "incorrect size of solution");
 
             // dupe check
@@ -284,5 +138,141 @@ namespace MiningCore.Blockchain.ExchangeCoin
         }
 
         #endregion // API-Surface
+        
+        ///////////////////////////////////////////
+        // GetJobParams related properties
+
+        protected object[] jobParams;
+
+        protected virtual void BuildCoinbase()
+        {
+            // build coinbase initial
+            using(var stream = new MemoryStream())
+            {
+                var bs = new BitcoinStream(stream, true);
+                BlockHeader.ReadWriteInitialCoinbase(bs);
+
+                coinbaseInitial = stream.ToArray();
+                coinbaseInitialHex = coinbaseInitial.ToHexString();
+            }
+
+            // build coinbase final
+            using(var stream = new MemoryStream())
+            {
+                var bs = new BitcoinStream(stream, true);
+                BlockHeader.ReadWriteFinalCoinbase(bs);
+            }
+        }
+
+        protected bool RegisterSubmit(string nonce, string extraNonce, string solution)
+        {
+            lock(submissions)
+            {
+                var key = nonce.ToLower() + extraNonce.ToLower() + solution.ToLower();
+                if (submissions.Contains(key))
+                    return false;
+
+                submissions.Add(key);
+                return true;
+            }
+        }
+
+        protected virtual (Share Share, string BlockHex) ProcessShareInternal(StratumClient worker, string extraNonce,
+            uint nTime, string nonce, string solution)
+        {
+            var context = worker.ContextAs<BitcoinWorkerContext>();
+            var solutionBytes = solution.HexToByteArray();
+            var extraNonceBytes = extraNonce.HexToByteArray();
+            var nonceInt = uint.Parse(nonce, NumberStyles.HexNumber);
+
+            // hash block-header
+            var headerBytes = SerializeHeader(nTime, extraNonceBytes, nonceInt);
+
+            // TODO: Investigate why it throws DllNotFound for LibMultiHash
+            //if (!equihash.Verify(headerBytes, solutionBytes))
+            //    throw new StratumException(StratumError.Other, "invalid solution");
+
+            // hash block-header
+            var headerSolutionBytes = headerBytes.Concat(solutionBytes).ToArray();
+            var headerHash = headerHasher.Digest(headerSolutionBytes);
+            var headerValue = new uint256(headerHash);
+            var headerHashBigInt = new BigInteger(headerHash.ToBigInteger().ToString());
+
+            // calc share-diff
+            var shareDiff = chainConfig.PowLimit.Divide(headerHashBigInt).LongValue * shareMultiplier;
+            var stratumDifficulty = context.Difficulty;
+            var ratio = shareDiff / stratumDifficulty;
+
+            // check if the share meets the much harder block difficulty (block candidate)
+            var isBlockCandidate = headerHashBigInt.CompareTo(blockTargetValue) < 1;
+
+            // test if share meets at least workers current difficulty
+            if (!isBlockCandidate && ratio < 0.99)
+            {
+                // check if share matched the previous difficulty from before a vardiff retarget
+                if (context.VarDiff?.LastUpdate != null && context.PreviousDifficulty.HasValue)
+                {
+                    ratio = shareDiff / context.PreviousDifficulty.Value;
+
+                    if (ratio < 0.99)
+                        throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share ({shareDiff})");
+
+                    // use previous difficulty
+                    stratumDifficulty = context.PreviousDifficulty.Value;
+                }
+
+                else
+                    throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share ({shareDiff})");
+            }
+
+            var result = new Share
+            {
+                BlockHeight = BlockHeader.Height,
+                NetworkDifficulty = Difficulty,
+                Difficulty = stratumDifficulty,
+            };
+
+            if (isBlockCandidate)
+            {
+                result.IsBlockCandidate = true;
+                result.BlockHash = headerValue.ToString();
+
+                var blockHex = headerSolutionBytes.ToHexString();
+
+                return (result, blockHex);
+            }
+
+            return (result, null);
+        }
+
+        protected virtual byte[] SerializeHeader(uint nTime, byte[] extraNonce, uint nonce)
+        {
+            byte[] serialized;
+
+            using(var stream = new MemoryStream())
+            {
+                var bs = new BitcoinStream(stream, true);
+                BlockHeader.ReadWrite(bs);
+                serialized = stream.ToArray();
+            }
+
+
+            var tmpBlockHeader = new ExchangeCoinBlockHeader(serialized);
+            tmpBlockHeader.Timestamp = nTime;
+            tmpBlockHeader.Nonce = nonce;
+            Array.Resize(ref extraNonce, 32);
+            tmpBlockHeader.ExtraData = extraNonce;
+
+            byte[] serializedTmp;
+            using(var stream = new MemoryStream())
+            {
+                var bs = new BitcoinStream(stream, true);
+                tmpBlockHeader.ReadWriteWithoutSolution(bs);
+
+                serializedTmp = stream.ToArray();
+            }
+
+            return serializedTmp;
+        }
     }
 }

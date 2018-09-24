@@ -18,22 +18,15 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace MiningCore.Blockchain.ExchangeCoin.Configuration
+namespace MiningCore.Blockchain.ExchangeCoin.DaemonInterface
 {
-    public class ExchangeCoinDaemonEndpointConfigExtra
+    public class MiningInfo
     {
-        public int? MinimumConfirmations { get; set; }
-
-        /// <summary>
-        /// Address of ZeroMQ block notify socket
-        /// Should match the value of -zmqpubhashblock daemon start parameter
-        /// </summary>
-        public string ZmqBlockNotifySocket { get; set; }
-
-        /// <summary>
-        /// Optional: ZeroMQ block notify topic
-        /// Defaults to "hashblock" if left blank
-        /// </summary>
-        public string ZmqBlockNotifyTopic { get; set; }
+        public int Blocks { get; set; }
+        public int CurrentBlockSize { get; set; }
+        public int CurrentBlockWeight { get; set; }
+        public double Difficulty { get; set; }
+        public double NetworkHashps { get; set; }
+        public string Chain { get; set; }
     }
 }

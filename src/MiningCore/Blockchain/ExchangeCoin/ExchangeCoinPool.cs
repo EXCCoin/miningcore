@@ -1,5 +1,5 @@
 ﻿/*
-Copyright 2018 Exchange Coin (excc.co)
+Copyright 2018 ExchangeCoin (excc.co)
 */
 
 using Autofac;

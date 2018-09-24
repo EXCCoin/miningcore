@@ -18,15 +18,25 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace MiningCore.Blockchain.ExchangeCoin.DaemonResponses
+using Newtonsoft.Json;
+
+namespace MiningCore.Blockchain.ExchangeCoin.DaemonInterface
 {
-    public class NetworkInfo
+    public class Block
     {
-        public string Version { get; set; }
-        public string SubVersion { get; set; }
-        public int ProtocolVersion { get; set; }
-        public bool LocalRelay { get; set; }
-        public bool NetworkActive { get; set; }
-        public int Connections { get; set; }
+        public uint Version { get; set; }
+        public string Hash { get; set; }
+        public string PreviousBlockhash { get; set; }
+        public ulong Time { get; set; }
+        public uint Height { get; set; }
+        public string Bits { get; set; }
+        public double Difficulty { get; set; }
+        public string Nonce { get; set; }
+        public uint Weight { get; set; }
+        public uint Size { get; set; }
+        public int Confirmations { get; set; }
+
+        [JsonProperty("tx")]
+        public string[] Transactions { get; set; }
     }
 }
