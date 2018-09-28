@@ -203,6 +203,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
             try
             {
                 var results = await _daemon.ExecuteBatchAnyAsync(
+                    new DaemonCmd(BitcoinCommands.GetMiningInfo),
                     new DaemonCmd(BitcoinCommands.GetConnectionCount)
                 );
 
@@ -214,8 +215,10 @@ namespace MiningCore.Blockchain.ExchangeCoin
                         logger.Warn(() => $"[{LogCat}] Error(s) refreshing network stats: {string.Join(", ", errors.Select(y => y.Error.Message))}");
                 }
 
-                var connectionCountResponse = results[0].Response.ToObject<object>();
+                var miningInfoResponse = results[0].Response.ToObject<MiningInfo>();
+                var connectionCountResponse = results[1].Response.ToObject<object>();
 
+                BlockchainStats.NetworkHashrate = miningInfoResponse.NetworkHashps;
                 BlockchainStats.ConnectedPeers = (int)(long)connectionCountResponse;
             }
 
