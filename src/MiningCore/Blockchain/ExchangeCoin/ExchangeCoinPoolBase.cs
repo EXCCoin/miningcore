@@ -355,9 +355,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
 
         public override double HashrateFromShares(double shares, double interval)
         {
-            var multiplier = BitcoinConstants.Pow2x32 / manager.ShareMultiplier;
-
-            return shares * multiplier / interval;
+            return shares / interval;
         }
 
         protected override async Task OnVarDiffUpdateAsync(StratumClient client, double newDiff)
