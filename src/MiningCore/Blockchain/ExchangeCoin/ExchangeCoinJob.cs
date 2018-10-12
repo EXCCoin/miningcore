@@ -18,7 +18,6 @@ using MiningCore.Stratum;
 using MiningCore.Time;
 using MiningCore.Util;
 using NBitcoin;
-using NBitcoin.BouncyCastle.Math;
 
 namespace MiningCore.Blockchain.ExchangeCoin
 {
@@ -29,7 +28,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
         protected double shareMultiplier;
         protected IHashAlgorithm headerHasher;
         protected HashSet<string> submissions = new HashSet<string>();
-        protected BigInteger blockTargetValue;
+        protected Target blockTarget;
         protected byte[] coinbaseInitial;
         protected string coinbaseInitialHex;
         protected EquihashSolverBase equihash;
@@ -68,15 +67,9 @@ namespace MiningCore.Blockchain.ExchangeCoin
             this.headerHasher = headerHasher;
             this.equihash = chainConfig.Solver();
 
-            if(!string.IsNullOrEmpty(Work.Target))
-                blockTargetValue = new BigInteger(Work.Target.HexToByteArray().ToReverseArray());
-            else
-            {
-                var tmp = new Target(BlockHeader.Bits);
-                blockTargetValue = tmp.ToBigInteger();
-            }
+            blockTarget = new Target(BlockHeader.Bits);
 
-            Difficulty = chainConfig.PowLimit.Divide(blockTargetValue).LongValue;
+            Difficulty = chainConfig.Diff1.Divide(blockTarget.ToBigInteger()).LongValue;
             
             BuildCoinbase();
 
@@ -196,16 +189,15 @@ namespace MiningCore.Blockchain.ExchangeCoin
             var headerSolutionBytes = headerBytes.Concat(solutionBytes).ToArray();
             var headerHash = headerHasher.Digest(headerSolutionBytes);
             var headerValue = new uint256(headerHash);
-            var headerHashBigInt = new BigInteger(headerHash.ToBigInteger().ToString());
 
             // calc share-diff
-            var shareDiff = chainConfig.PowLimit.Divide(headerHashBigInt).LongValue * shareMultiplier;
+            double shareDiff = (double)new BigRational(chainConfig.Diff1b, headerHash.ToBigInteger());
             var stratumDifficulty = context.Difficulty;
             var ratio = shareDiff / stratumDifficulty;
 
             // check if the share meets the much harder block difficulty (block candidate)
-            var isBlockCandidate = headerHashBigInt.CompareTo(blockTargetValue) < 1;
-
+            var isBlockCandidate = headerValue < blockTarget.ToUInt256();
+            
             // test if share meets at least workers current difficulty
             if (!isBlockCandidate && ratio < 0.99)
             {

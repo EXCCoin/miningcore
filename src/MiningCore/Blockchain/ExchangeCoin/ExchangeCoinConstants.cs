@@ -31,7 +31,8 @@ namespace MiningCore.Blockchain.ExchangeCoin
 {
     public class ExchangeCoinChainConfig
     {
-        public BigInteger PowLimit { get; set; }
+        public BigInteger Diff1;
+        public System.Numerics.BigInteger Diff1b;
         public int SolutionSize { get; set; } = 100;
         public Func<EquihashSolverBase> Solver { get; set; } = () => ExchangeCoinConstants.EquihashSolver_144_5;
     }
@@ -55,7 +56,9 @@ namespace MiningCore.Blockchain.ExchangeCoin
             {
                 BitcoinNetworkType.Main, new ExchangeCoinChainConfig
                 {
-                    PowLimit = BigInteger.One.ShiftLeft(254).Subtract(BigInteger.One),
+                    Diff1 = new BigInteger("3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16),
+                    Diff1b = System.Numerics.BigInteger.Parse("3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", NumberStyles.HexNumber),
+                    
                     Solver = () => EquihashSolver_144_5,
                     SolutionSize = 100,
                 }
@@ -63,7 +66,9 @@ namespace MiningCore.Blockchain.ExchangeCoin
             {
                 BitcoinNetworkType.Test, new ExchangeCoinChainConfig
                 {
-                    PowLimit = BigInteger.One.ShiftLeft(254).Subtract(BigInteger.One),
+                    Diff1 = new BigInteger("3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16),
+                    Diff1b = System.Numerics.BigInteger.Parse("3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", NumberStyles.HexNumber),
+                        
                     Solver = () => EquihashSolver_144_5,
                     SolutionSize = 100,
                 }
