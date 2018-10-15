@@ -31,7 +31,8 @@ namespace MiningCore.Blockchain.ExchangeCoin
         protected Target blockTarget;
         protected byte[] coinbaseInitial;
         protected string coinbaseInitialHex;
-        protected EquihashSolverBase equihash;
+        protected byte[] coinbaseFinal;
+        protected string coinbaseFinalHex;
 
         #region API-Surface
 
@@ -65,7 +66,6 @@ namespace MiningCore.Blockchain.ExchangeCoin
 
             this.shareMultiplier = shareMultiplier;
             this.headerHasher = headerHasher;
-            this.equihash = chainConfig.Solver();
 
             blockTarget = new Target(BlockHeader.Bits);
 
@@ -75,15 +75,15 @@ namespace MiningCore.Blockchain.ExchangeCoin
 
             jobParams = new object[]
             {
-                JobId,                                               // JobID
-                BlockHeader.PrevBlock.ToHexString(),                 // PrevHash
-                coinbaseInitialHex,                                  // Coinbase1
-                "",                                                  // Coinbase2
-                "",                                                  // MerkleBranches
-                BlockHeader.Version.ToStringHex8().HexToByteArray().ReverseArray().ToHexString(),        // BlockVersion
-                BlockHeader.Bits.ReverseByteOrder().ToStringHex8(),  // NBits
-                BlockHeader.Timestamp.ReverseByteOrder().ToStringHex8(), // NTime
-                false                                                // CleanJobs
+                JobId,
+                BlockHeader.PrevBlock.ToHexString(),
+                coinbaseInitialHex,
+                coinbaseFinalHex,
+                "",
+                BlockHeader.Version.ToStringHex8().HexToByteArray().ReverseArray().ToHexString(),
+                BlockHeader.Bits.ReverseByteOrder().ToStringHex8(),
+                BlockHeader.Timestamp.ReverseByteOrder().ToStringHex8(),
+                false
             };
         }
 
@@ -154,6 +154,9 @@ namespace MiningCore.Blockchain.ExchangeCoin
             {
                 var bs = new BitcoinStream(stream, true);
                 BlockHeader.ReadWriteFinalCoinbase(bs);
+
+                coinbaseFinal = stream.ToArray();
+                coinbaseFinalHex = coinbaseFinal.ToHexString();
             }
         }
 
@@ -180,10 +183,6 @@ namespace MiningCore.Blockchain.ExchangeCoin
 
             // hash block-header
             var headerBytes = SerializeHeader(nTime, extraNonceBytes, nonceInt);
-
-            // TODO: Investigate why it throws DllNotFound for LibMultiHash
-            //if (!equihash.Verify(headerBytes, solutionBytes))
-            //    throw new StratumException(StratumError.Other, "invalid solution");
 
             // hash block-header
             var headerSolutionBytes = headerBytes.Concat(solutionBytes).ToArray();

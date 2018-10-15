@@ -205,7 +205,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
         }
 
         public void ReadWriteInitialCoinbase(BitcoinStream stream)
-        {   // 144 bytes (37 - 180)
+        {   // 108 bytes (37 - 144)
             stream.ReadWrite(ref merkleRoot);
             stream.ReadWrite(ref stakeRoot);
             stream.ReadWrite(ref voteBits);
@@ -220,13 +220,11 @@ namespace MiningCore.Blockchain.ExchangeCoin
             stream.ReadWrite(ref size);
             stream.ReadWrite(ref timestamp);
             stream.ReadWrite(ref nonce);
-            stream.ReadWrite(ref extraData);
-            stream.ReadWrite(ref stakeVersion);
         }
 
         public void ReadWriteFinalCoinbase(BitcoinStream stream)
-        {   // 100 bytes (181 - 280)
-            stream.ReadWrite(ref equihashSolution);
+        {   // 4 bytes (176 - 180)
+            stream.ReadWrite(ref stakeVersion);
         }
 
         internal void SetNull()
