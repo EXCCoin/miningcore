@@ -59,7 +59,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
                 {
                     new object[]
                     {
-                        new object[] { BitcoinStratumMethods.SetDifficulty, client.ConnectionId },
+                        new object[] { BitcoinStratumMethods.SetDifficulty, new object[] { context.Difficulty } },
                         new object[] { BitcoinStratumMethods.MiningNotify, client.ConnectionId }
                     }
                 }
