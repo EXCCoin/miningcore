@@ -1,4 +1,4 @@
-/*
+﻿/*
 Copyright 2017 Coin Foundry (coinfoundry.org)
 Authors: Oliver Weichhold (oliver@weichhold.com)
 
@@ -63,6 +63,7 @@ namespace MiningCore.Configuration
         CANN, // CannabisCoin
         RVN, // Ravencoin
         PGN, // Pigeoncoin
+        EXCC, // ExchangeCoin
     }
 
     public class CoinConfig
@@ -133,7 +134,7 @@ namespace MiningCore.Configuration
 
         [JsonExtensionData]
         public IDictionary<string, object> Extra { get; set; }
-    }
+    }    
 
     public class DatabaseConfig : AuthenticatedNetworkEndpointConfig
     {

@@ -20,36 +20,30 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using Newtonsoft.Json;
 
-namespace MiningCore.Blockchain.ZCash.DaemonResponses
+namespace MiningCore.Blockchain.ExchangeCoin.DaemonInterface
 {
-    public class ZCashCoinbaseTransaction
+    public class TransactionDetails
     {
-        public string Data { get; set; }
-        public string Hash { get; set; }
-        public decimal Fee { get; set; }
-        public int SigOps { get; set; }
-        public ulong FoundersReward { get; set; }
-        public bool Required { get; set; }
-
-        // "depends":[ ],
+        public string Account { get; set; }
+        public string Address { get; set; }
+        public decimal Amount { get; set; }
+        public string Category { get; set; }
+        public int Vout { get; set; }
     }
 
-    public class ZCashBlockTemplate : Bitcoin.DaemonResponses.BlockTemplate
+    public class Transaction
     {
-        public string[] Capabilities { get; set; }
-
-        [JsonProperty("coinbasetxn")]
-        public ZCashCoinbaseTransaction CoinbaseTx { get; set; }
-
-        public string LongPollId { get; set; }
-        public ulong MinTime { get; set; }
-        public ulong SigOpLimit { get; set; }
-        public ulong SizeLimit { get; set; }
-        public string[] Mutable { get; set; }
-
-        public ZCashBlockSubsidy Subsidy { get; set; }
-
-        [JsonProperty("finalsaplingroothash")]
-        public string FinalSaplingRootHash { get; set; }
+        public decimal Amount { get; set; }
+        public int Confirmations { get; set; }
+        public bool Generated { get; set; }
+        public string BlockHash { get; set; }
+        public long BlockIndex { get; set; }
+        public ulong BlockTime { get; set; }
+        public string TxId { get; set; }
+        public string[] WalletConflicts { get; set; }
+        public ulong Time { get; set; }
+        public ulong TimeReceived { get; set; }
+        public TransactionDetails[] Details { get; set; }
+        public string Hex { get; set; }
     }
 }

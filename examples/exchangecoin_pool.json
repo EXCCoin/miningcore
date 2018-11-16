@@ -1,0 +1,113 @@
+{
+  "logging": {
+    "level": "info",
+    "enableConsoleLog": true,
+    "enableConsoleColors": false,
+    "logFile": "",
+    "logBaseDirectory": "",
+    "perPoolLogFile": false
+  },
+
+  "banning": {
+    "manager": "integrated",
+    "banOnJunkReceive": true,
+    "banOnInvalidShares": false
+  },
+
+  "notifications": {
+    "enabled": false,
+    "email": {
+      "host": "smtp.example.com",
+      "port": 587,
+      "user": "user",
+      "password": "password",
+      "fromAddress": "info@yourpool.org",
+      "fromName": "pool support"
+    },
+
+    "admin": {
+      "enabled": true,
+      "emailAddress": "user@example.com",
+      "notifyBlockFound": true
+    }
+  },
+  "persistence": {
+    "postgres": {
+      "host": "127.0.0.1",
+      "port": 5432,
+      "user": "miningcore",
+      "password": "miningcore",
+      "database": "miningcore"
+    }
+  },
+  "paymentProcessing": {
+    "enabled": true,
+    "interval": 60,
+    "shareRecoveryFile": "recovered-shares.txt"
+  },
+  "api": {
+    "enabled": true,
+    "listenAddress": "0.0.0.0",
+    "port": 4000
+  },
+
+  "pools": [{
+  "id": "exchangeCoin",
+     "enabled": true,
+     "coin": {
+       "type": "EXCC"
+     },
+    "address": "22tq8UCZNk8ifua3eSqNpJiPbWcfQc8voFC6",
+    "rewardRecipients": [
+      {
+    	"address": "22tq8UCZNk8ifua3eSqNpJiPbWcfQc8voFC6",
+        "percentage": 1.5
+      }
+    ],
+    "blockRefreshInterval": 400,
+    "jobRebroadcastTimeout": 10,
+    "clientConnectionTimeout": 600,
+    "banning": {
+      "enabled": true,
+      "time": 600,
+      "invalidPercent": 50,
+      "checkThreshold": 50
+    },
+    "ports": {
+      "3052": {
+        "listenAddress": "0.0.0.0",
+        "difficulty": 2.0,
+        "varDiff": {
+          "minDiff": 0.01,
+          "maxDiff": null,
+          "targetTime": 15,
+          "retargetTime": 90,
+          "variancePercent": 30,
+          "maxDelta": 500
+        }
+      }
+    },
+    "daemons": [{
+        "host": "127.0.0.1",
+        "port": 9109,
+        "user": "rpcuser",
+        "password": "rpcpass"
+      }
+    ],
+    "wallets": [{
+	    "host": "127.0.0.1",
+	    "port": 9110,
+	    "user": "rpcuser",
+	    "password": "rpcpass"
+      }
+    ],
+    "paymentProcessing": {
+      "enabled": true,
+      "minimumPayment": 0.01,
+      "payoutScheme": "PPLNS",
+      "payoutSchemeConfig": {
+        "factor": 2.0
+      }
+    }
+  }]
+}

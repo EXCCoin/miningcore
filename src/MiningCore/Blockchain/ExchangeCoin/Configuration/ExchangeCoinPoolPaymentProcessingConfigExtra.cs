@@ -18,38 +18,23 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using Newtonsoft.Json;
-
-namespace MiningCore.Blockchain.ZCash.DaemonResponses
+namespace MiningCore.Blockchain.ExchangeCoin.Configuration
 {
-    public class ZCashCoinbaseTransaction
+    public class ExchangeCoinPoolPaymentProcessingConfigExtra
     {
-        public string Data { get; set; }
-        public string Hash { get; set; }
-        public decimal Fee { get; set; }
-        public int SigOps { get; set; }
-        public ulong FoundersReward { get; set; }
-        public bool Required { get; set; }
+        /// <summary>
+        /// Wallet Password if the daemon is running with an encrypted wallet (used for unlocking wallet during payment processing)
+        /// </summary>
+        public string WalletPassword { get; set; }
 
-        // "depends":[ ],
-    }
+        /// <summary>
+        /// if True, miners pay payment tx fees
+        /// </summary>
+        public bool MinersPayTxFees { get; set; }
 
-    public class ZCashBlockTemplate : Bitcoin.DaemonResponses.BlockTemplate
-    {
-        public string[] Capabilities { get; set; }
-
-        [JsonProperty("coinbasetxn")]
-        public ZCashCoinbaseTransaction CoinbaseTx { get; set; }
-
-        public string LongPollId { get; set; }
-        public ulong MinTime { get; set; }
-        public ulong SigOpLimit { get; set; }
-        public ulong SizeLimit { get; set; }
-        public string[] Mutable { get; set; }
-
-        public ZCashBlockSubsidy Subsidy { get; set; }
-
-        [JsonProperty("finalsaplingroothash")]
-        public string FinalSaplingRootHash { get; set; }
+        /// <summary>
+        /// Multiply blockreward by this amount
+        /// </summary>
+        public decimal? BlockrewardMultiplier { get; set; }
     }
 }

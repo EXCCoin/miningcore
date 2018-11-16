@@ -29,6 +29,7 @@ using MiningCore.Blockchain.BitcoinGold;
 using MiningCore.Blockchain.Dash;
 using MiningCore.Blockchain.Dash.DaemonResponses;
 using MiningCore.Blockchain.Ethereum;
+using MiningCore.Blockchain.ExchangeCoin;
 using MiningCore.Blockchain.Flo;
 using MiningCore.Blockchain.Monero;
 using MiningCore.Blockchain.Straks;
@@ -166,6 +167,12 @@ namespace MiningCore
             // Bitcoin Gold
 
             builder.RegisterType<BitcoinGoldJobManager>()
+                .AsSelf();
+
+            //////////////////////
+            // ExchangeCoin
+
+            builder.RegisterType<ExchangeCoinJobManager>()
                 .AsSelf();
 
             base.Load(builder);
