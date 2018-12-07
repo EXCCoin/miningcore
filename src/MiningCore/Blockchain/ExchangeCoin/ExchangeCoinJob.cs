@@ -250,7 +250,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
 
             var tmpBlockHeader = new ExchangeCoinBlockHeader(serialized);
             tmpBlockHeader.Timestamp = nTime;
-            tmpBlockHeader.Nonce = nonce;
+            tmpBlockHeader.Nonce = nonce.ReverseByteOrder();
             Array.Resize(ref extraNonce, 32);
             tmpBlockHeader.ExtraData = extraNonce;
 
