@@ -142,7 +142,7 @@ namespace MiningCore.Crypto.Hashing.Equihash
                 {
                     fixed(byte* s = solution)
                     {
-                        return LibMultihash.equihash_verify_btg(h, header.Length, s, solution.Length);
+                        return LibMultihash.equihash_verify_excc(h, header.Length, s, solution.Length);
                     }
                 }
             }

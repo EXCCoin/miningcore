@@ -33,6 +33,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
         protected string coinbaseInitialHex;
         protected byte[] coinbaseFinal;
         protected string coinbaseFinalHex;
+        protected EquihashSolverBase equihash;
 
         #region API-Surface
 
@@ -66,6 +67,7 @@ namespace MiningCore.Blockchain.ExchangeCoin
 
             this.shareMultiplier = shareMultiplier;
             this.headerHasher = headerHasher;
+            this.equihash = chainConfig.Solver();
 
             blockTarget = new Target(BlockHeader.Bits);
 
@@ -181,8 +183,12 @@ namespace MiningCore.Blockchain.ExchangeCoin
             var extraNonceBytes = extraNonce.HexToByteArray();
             var nonceInt = uint.Parse(nonce, NumberStyles.HexNumber);
 
-            // hash block-header
+            // serialize block-header
             var headerBytes = SerializeHeader(nTime, extraNonceBytes, nonceInt);
+
+            // verify solution
+            if (!equihash.Verify(headerBytes, solutionBytes))
+                throw new StratumException(StratumError.Other, "invalid solution");
 
             // hash block-header
             var headerSolutionBytes = headerBytes.Concat(solutionBytes).ToArray();
@@ -239,30 +245,24 @@ namespace MiningCore.Blockchain.ExchangeCoin
         protected virtual byte[] SerializeHeader(uint nTime, byte[] extraNonce, uint nonce)
         {
             byte[] serialized;
-
             using(var stream = new MemoryStream())
             {
                 var bs = new BitcoinStream(stream, true);
                 BlockHeader.ReadWrite(bs);
                 serialized = stream.ToArray();
             }
-
-
             var tmpBlockHeader = new ExchangeCoinBlockHeader(serialized);
             tmpBlockHeader.Timestamp = nTime;
             tmpBlockHeader.Nonce = nonce.ReverseByteOrder();
             Array.Resize(ref extraNonce, 32);
             tmpBlockHeader.ExtraData = extraNonce;
-
             byte[] serializedTmp;
             using(var stream = new MemoryStream())
             {
                 var bs = new BitcoinStream(stream, true);
                 tmpBlockHeader.ReadWriteWithoutSolution(bs);
-
                 serializedTmp = stream.ToArray();
             }
-
             return serializedTmp;
         }
     }
