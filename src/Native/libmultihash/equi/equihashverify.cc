@@ -25,7 +25,7 @@ bool verifyEH_200_9(const char *hdr, const std::vector<unsigned char> &soln, con
   return isValid;
 }
 
-bool verifyEH_144_5(const char *hdr, const std::vector<unsigned char> &soln, const char *personalization) {
+bool verifyEH_144_5(const char *hdr, int header_length, const std::vector<unsigned char> &soln, const char *personalization) {
     unsigned int n = 144;
     unsigned int k = 5;
 
@@ -39,7 +39,7 @@ bool verifyEH_144_5(const char *hdr, const std::vector<unsigned char> &soln, con
     crypto_generichash_blake2b_state state;
     EhInitialiseState(n, k, state, personalization);
 
-    crypto_generichash_blake2b_update(&state, (const unsigned char*)hdr, 140);
+    crypto_generichash_blake2b_update(&state, (const unsigned char*)hdr, header_length);
 
     bool isValid = Eh144_5.IsValidSolution(state, soln);
 

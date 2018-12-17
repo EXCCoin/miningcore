@@ -218,7 +218,18 @@ extern "C" MODULE_API bool equihash_verify_btg_export(const char* header, int he
 
     std::vector<unsigned char> vecSolution(solution, solution + solution_length);
 
-    return verifyEH_144_5(header, vecSolution, "BgoldPoW");
+    return verifyEH_144_5(header, header_length, vecSolution, "BgoldPoW");
+}
+
+extern "C" MODULE_API bool equihash_verify_excc_export(const char* header, int header_length, const char* solution, int solution_length)
+{
+    if (header_length != 180) {
+        return false;
+    }
+
+    std::vector<unsigned char> vecSolution(solution, solution + solution_length);
+
+    return verifyEH_144_5(header, header_length, vecSolution, NULL);
 }
 
 extern "C" MODULE_API void sha3_256_export(const char* input, char* output, uint32_t input_len)
