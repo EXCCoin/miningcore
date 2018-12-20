@@ -142,6 +142,13 @@ namespace MiningCore.Blockchain.ExchangeCoin
                         }
                     }
 
+                    // check transaction block hash in case of duplicated block with the same coinbase
+                    else if (!transactionInfo.BlockHash.Equals(block.Hash))
+                    {
+                        block.Status = BlockStatus.Orphaned;
+                        result.Add(block);
+                    }
+
                     // missing transaction details are interpreted as "orphaned"
                     else if (transactionInfo?.Details == null || transactionInfo.Details.Length == 0)
                     {
