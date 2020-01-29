@@ -11,6 +11,7 @@ RUN chmod +x ./src/MiningCore/linux-build.sh
 RUN cd ./src/MiningCore && ./linux-build.sh && cp -r ../../build/* /dotnetapp
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:2.1
+RUN apt-get update -y && apt-get -y install build-essential libssl-dev pkg-config libboost-all-dev libsodium-dev
 WORKDIR /dotnetapp
 COPY --from=builder /dotnetapp .
 
